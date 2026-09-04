@@ -62,5 +62,6 @@ COPY --from=builder /build/llama.cpp/build/bin/llama-mtmd-cli /app/llama-mtmd-cl
 COPY --from=builder /build/llama.cpp/build/bin/*.so* /app/
 
 ENV LD_LIBRARY_PATH=/app
-RUN LD_LIBRARY_PATH=/app ldd /app/llama-server | awk '/not found/{bad=1} END{exit bad}'
+# libcuda.so.1 is provided by the node driver at runtime (nvidia-container-runtime)
+RUN LD_LIBRARY_PATH=/app ldd /app/llama-server | grep -v "libcuda" | awk '/not found/{print; bad=1} END{exit bad}'
 ENTRYPOINT ["/app/llama-server"]
