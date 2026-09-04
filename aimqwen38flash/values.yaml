@@ -18,11 +18,11 @@ service:
 resources:
   limits:
     cpu: 20
-    memory: 40Gi
+    memory: 58Gi
     nvidia.com/gpu: 1
   requests:
-    cpu: 8
-    memory: 24Gi
+    cpu: 12
+    memory: 40Gi
     nvidia.com/gpu: 1
 
 env:

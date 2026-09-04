@@ -58,10 +58,10 @@ spec:
   developer: Aimighty
   website: https://github.com/bayerhazard/aimighty-llmqwen38flash
   sourceCode: https://github.com/bayerhazard/aimighty-llmqwen38flash
-  requiredCpu: "8"
+  requiredCpu: "12"
   limitedCpu: "20"
-  requiredMemory: 24Gi
-  limitedMemory: 40Gi
+  requiredMemory: 40Gi
+  limitedMemory: 58Gi
   requiredDisk: 120Gi
   limitedDisk: 130Gi
   requiredGpu: 1
