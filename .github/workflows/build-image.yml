@@ -1,0 +1,62 @@
+name: Build llama-cpp-qwen4 image
+
+on:
+  workflow_dispatch:
+    inputs:
+      pin:
+        description: 'danielhanchen/llama.cpp commit to build (default: qwen4exp/mtp HEAD 2c967293)'
+        required: false
+        default: '2c967293c2632bd0d09096406628a7e4baf97b88'
+      tag:
+        description: 'Image tag (default: short sha)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    env:
+      PIN: ${{ inputs.pin || '2c967293c2632bd0d09096406628a7e4baf97b88' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve short sha
+        id: sha
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${PIN:0:7}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          push: true
+          tags: ghcr.io/bayerhazard/llama-cpp-qwen4:${{ steps.sha.outputs.tag }}
+          build-args: |
+            PIN=${{ env.PIN }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Summary
+        run: |
+          echo "## Image pushed" >> "$GITHUB_STEP_SUMMARY"
+          echo "**ghcr.io/bayerhazard/llama-cpp-qwen4:${{ steps.sha.outputs.tag }}**" >> "$GITHUB_STEP_SUMMARY"
