@@ -1,0 +1,60 @@
+workloads:
+  aimqwen38flash:
+    replicaCount: 1
+
+image:
+  repository: ghcr.io/bayerhazard/llama-cpp-qwen4
+  tag: 2c967293
+  full: ghcr.io/bayerhazard/llama-cpp-qwen4:2c967293c2632bd0d09096406628a7e4baf97b88
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: aimqwen38flash
+
+service:
+  type: ClusterIP
+  port: 8000
+
+resources:
+  limits:
+    cpu: 20
+    memory: 40Gi
+    nvidia.com/gpu: 1
+  requests:
+    cpu: 8
+    memory: 24Gi
+    nvidia.com/gpu: 1
+
+env:
+  CTX_SIZE: "200000"
+  THREADS: "16"
+  PARALLEL: "1"
+  SPEC_TYPE: "draft-mtp"
+  DRAFT_MAX: "3"
+  MODEL_ALIAS: "qwen3.8-flash"
+  NGPU_LAYERS: "all"
+  N_CPU_MOE: ""
+  BATCH_SIZE: "2048"
+  UBATCH_SIZE: "512"
+  MODELS_DIR: "/models"
+  MODELS_HOST_PATH: "/var/lib/olares-local-models"
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+probes:
+  startup:
+    path: /health
+    port: 8000
+    failureThreshold: 120
+    periodSeconds: 30
+    initialDelaySeconds: 60
+    timeoutSeconds: 10
+  liveness:
+    path: /health
+    port: 8000
+    failureThreshold: 5
+    periodSeconds: 30
+    initialDelaySeconds: 600
+    timeoutSeconds: 10

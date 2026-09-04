@@ -1,0 +1,212 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aimqwen38flash
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: aimqwen38flash
+    io.kompose.service: aimqwen38flash
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+spec:
+  replicas: {{ .Values.workloads.aimqwen38flash.replicaCount }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      io.kompose.service: aimqwen38flash
+  template:
+    metadata:
+      labels:
+        app: aimqwen38flash
+        io.kompose.network/chrome-default: "true"
+        io.kompose.service: aimqwen38flash
+    spec:
+      initContainers:
+      - name: check-auth
+        image: beclab/wait-for:0.1.0
+        imagePullPolicy: IfNotPresent
+        command: ["true"]
+        args: ["-it", "authelia-backend.user-system-aimighty:9091"]
+      - name: render-envoy-config
+        image: beclab/busybox:1.28
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/sh
+        - -c
+        - |
+          while [ ! -f /var/run/secrets/kubernetes.io/serviceaccount/token ]; do sleep 0.2; done
+          TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+          awk -v token="$TOKEN" '{gsub(/__SA_TOKEN__/, token); print}' /work/envoy.yaml > /config/envoy.yaml
+          awk -v token="$TOKEN" '{gsub(/__SA_TOKEN__/, token); print}' /work/envoy2.yaml > /config/envoy2.yaml
+          cat /config/envoy2.yaml
+        volumeMounts:
+        - mountPath: /config
+          name: envoy-config
+        - mountPath: /work/envoy.yaml
+          name: olares-sidecar-config
+          subPath: envoy.yaml
+        - mountPath: /work/envoy2.yaml
+          name: olares-sidecar-config
+          subPath: envoy2.yaml
+      - name: olares-sidecar-init
+        image: beclab/init:v1.2.3
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh"]
+        resources:
+          limits:
+            nvidia.com/gpu: "0"
+          requests:
+            nvidia.com/gpu: "0"
+      containers:
+      - name: aimqwen38flash
+        image: "{{ .Values.image.full }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command:
+          - /bin/bash
+          - -c
+          - |
+            set -e
+            MODELS=${MODELS_DIR:-/models}
+            B="https://huggingface.co/unsloth/Qwen3.8-Flash-Next-GGUF/resolve/main"
+            fetch() {
+              rel="$1"
+              if [ ! -f "$MODELS/$rel" ]; then
+                echo "==> Downloading $rel to $MODELS (worker-local NVMe)"
+                mkdir -p "$(dirname "$MODELS/$rel")"
+                curl -fL -C - --retry 10 --retry-delay 10 --retry-all-errors --connect-timeout 30 "$B/$rel?download=true" -o "$MODELS/$rel"
+              fi
+            }
+            fetch "UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00001-of-00004.gguf"
+            fetch "UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00002-of-00004.gguf"
+            fetch "UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00003-of-00004.gguf"
+            fetch "UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00004-of-00004.gguf"
+            fetch "MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf"
+            fetch "mmproj-F16.gguf"
+            N_CPU_MOE_ARG=""
+            if [ -n "${N_CPU_MOE:-}" ]; then N_CPU_MOE_ARG="--n-cpu-moe ${N_CPU_MOE}"; fi
+            export LD_LIBRARY_PATH=/app:${LD_LIBRARY_PATH:-}
+            exec /app/llama-server \
+              --model "$MODELS/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00001-of-00004.gguf" \
+              --model-draft "$MODELS/MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf" \
+              --spec-type "${SPEC_TYPE:-draft-mtp}" \
+              --spec-draft-n-max "${DRAFT_MAX:-3}" \
+              --mmproj "$MODELS/mmproj-F16.gguf" --mmproj-gpu-swap \
+              --alias "${MODEL_ALIAS:-qwen3.8-flash}" \
+              --host 0.0.0.0 --port 8000 \
+              -ngl "${NGPU_LAYERS:-all}" \
+              $N_CPU_MOE_ARG \
+              --ctx-size "${CTX_SIZE:-200000}" --threads "${THREADS:-16}" \
+              --parallel "${PARALLEL:-1}" \
+              --flash-attn on --jinja \
+              --reasoning-preserve \
+              --chat-template-kwargs '{"reasoning_effort":"medium"}' \
+              --reasoning-budget 8192 \
+              --reasoning-budget-message 'Enough reasoning - provide your final answer now.' \
+              --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0 \
+              --batch-size "${BATCH_SIZE:-2048}" --ubatch-size "${UBATCH_SIZE:-512}"
+        env:
+        - name: MODELS_DIR
+          value: /models
+        - name: CUDA_DEVICE_MEMORY_LIMIT_0
+          value: 16000m
+        envFrom:
+        - configMapRef:
+            name: aimqwen38flash-env
+        ports:
+        - containerPort: {{ .Values.service.port }}
+          protocol: TCP
+        resources:
+          limits:
+            cpu: {{ .Values.resources.limits.cpu }}
+            memory: {{ .Values.resources.limits.memory }}
+            nvidia.com/gpu: {{ index .Values.resources.limits "nvidia.com/gpu" }}
+          requests:
+            cpu: {{ .Values.resources.requests.cpu }}
+            memory: {{ .Values.resources.requests.memory }}
+            nvidia.com/gpu: {{ index .Values.resources.requests "nvidia.com/gpu" }}
+        startupProbe:
+          httpGet:
+            path: {{ .Values.probes.startup.path }}
+            port: {{ .Values.probes.startup.port }}
+          failureThreshold: {{ .Values.probes.startup.failureThreshold }}
+          periodSeconds: {{ .Values.probes.startup.periodSeconds }}
+          initialDelaySeconds: {{ .Values.probes.startup.initialDelaySeconds }}
+          timeoutSeconds: {{ .Values.probes.startup.timeoutSeconds }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.probes.liveness.path }}
+            port: {{ .Values.probes.liveness.port }}
+          failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+          periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+          initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+          timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+        volumeMounts:
+        - name: models
+          mountPath: /models
+      - name: olares-envoy-sidecar
+        image: beclab/envoy:v1.25.11.1
+        imagePullPolicy: IfNotPresent
+        args: ["--log-level", "debug", "-c", "/config/envoy.yaml", "--service-cluster", "default."]
+        env:
+        - name: POD_UID
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.uid
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: SERVICE_ACCOUNT
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.serviceAccountName
+        - name: APP_KEY
+        - name: APP_SECRET
+        ports:
+        - name: proxy-admin
+          containerPort: 15000
+          protocol: TCP
+        - name: proxy-inbound
+          containerPort: 15003
+          protocol: TCP
+        - name: proxy-outbound
+          containerPort: 15001
+          protocol: TCP
+        - name: liveness-port
+          containerPort: 15008
+          protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add: ["NET_ADMIN"]
+          runAsUser: 1555
+        volumeMounts:
+        - mountPath: /config
+          name: envoy-config
+      volumes:
+      - name: models
+        hostPath:
+          path: {{ .Values.env.MODELS_HOST_PATH }}
+          type: DirectoryOrCreate
+      - name: envoy-config
+        emptyDir: {}
+      - name: olares-sidecar-config
+        configMap:
+          name: olares-sidecar-config-{{ include "aimqwen38flash.fullname" . }}
+          defaultMode: 420
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
