@@ -88,9 +88,12 @@ spec:
             if [ -n "${NGPU_LAYERS:-}" ]; then NGPU_ARG="-ngl ${NGPU_LAYERS}"; fi
             SPEC_ARG=""
             if [ -n "${SPEC_TYPE:-}" ]; then
-              fetch "MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf"
-              SPEC_ARG="--model-draft $MODELS/MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf --spec-type ${SPEC_TYPE} --spec-draft-n-max ${DRAFT_MAX:-3} --spec-draft-ngl ${DRAFT_NGL:-0} --spec-draft-threads ${DRAFT_THREADS:-4}"
+              DF="${DRAFT_FILE:-MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf}"
+              fetch "$DF"
+              SPEC_ARG="--model-draft $MODELS/$DF --spec-type ${SPEC_TYPE} --spec-draft-n-max ${DRAFT_MAX:-3} --spec-draft-ngl ${DRAFT_NGL:-0} --spec-draft-threads ${DRAFT_THREADS:-4}"
             fi
+            KV_ARG=""
+            if [ -n "${CACHE_TYPE_K:-}" ]; then KV_ARG="--cache-type-k ${CACHE_TYPE_K} --cache-type-v ${CACHE_TYPE_V:-${CACHE_TYPE_K}}"; fi
             export LD_LIBRARY_PATH=/app:${LD_LIBRARY_PATH:-}
             exec /app/llama-server \
               --model "$MODELS/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00001-of-00004.gguf" \
@@ -100,6 +103,7 @@ spec:
               $NGPU_ARG \
               $N_CPU_MOE_ARG \
               $SPEC_ARG \
+              $KV_ARG \
               --ctx-size "${CTX_SIZE:-200000}" --threads "${THREADS:-8}" \
               --parallel "${PARALLEL:-1}" \
               --flash-attn on --jinja \

@@ -27,7 +27,7 @@ resources:
 
 env:
   CTX_SIZE: "200000"
-  THREADS: "8"
+  THREADS: "12"
   PARALLEL: "1"
   MODEL_ALIAS: "qwen3.8-flash"
   NGPU_LAYERS: ""
@@ -35,9 +35,12 @@ env:
   SPEC_TYPE: "draft-mtp"
   DRAFT_MAX: "3"
   DRAFT_NGL: "0"
-  DRAFT_THREADS: "4"
+  DRAFT_THREADS: "6"
+  DRAFT_FILE: "MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf"
   BATCH_SIZE: "2048"
-  UBATCH_SIZE: "1024"
+  UBATCH_SIZE: "2048"
+  CACHE_TYPE_K: ""
+  CACHE_TYPE_V: ""
   MODELS_DIR: "/models"
   MODELS_HOST_PATH: "/var/lib/olares-local-models"
 

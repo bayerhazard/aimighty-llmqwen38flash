@@ -17,5 +17,8 @@ data:
   DRAFT_MAX: "{{ .Values.env.DRAFT_MAX }}"
   DRAFT_NGL: "{{ .Values.env.DRAFT_NGL }}"
   DRAFT_THREADS: "{{ .Values.env.DRAFT_THREADS }}"
+  DRAFT_FILE: "{{ .Values.env.DRAFT_FILE }}"
   BATCH_SIZE: "{{ .Values.env.BATCH_SIZE }}"
   UBATCH_SIZE: "{{ .Values.env.UBATCH_SIZE }}"
+  CACHE_TYPE_K: "{{ .Values.env.CACHE_TYPE_K }}"
+  CACHE_TYPE_V: "{{ .Values.env.CACHE_TYPE_V }}"

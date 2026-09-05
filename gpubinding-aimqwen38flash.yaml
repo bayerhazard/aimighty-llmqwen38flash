@@ -1,0 +1,17 @@
+apiVersion: gpu.bytetrade.io/v1alpha1
+kind: GPUBinding
+metadata:
+  labels:
+    app.bytetrade.io/managed-by: app-service
+    applications.app.bytetrade.io/name: aimqwen38flash
+    applications.app.bytetrade.io/owner: aimighty
+    gpu.bytetrade.io/mode: nvidia
+  name: aimqwen38flash-aimighty-gpu-a4a66656-ce4b-387a-5471-39f6fd64f621
+spec:
+  appName: aimqwen38flash
+  owner: aimighty
+  podSelector:
+    matchLabels:
+      applications.app.bytetrade.io/name: aimqwen38flash
+      applications.app.bytetrade.io/owner: aimighty
+  uuid: GPU-a4a66656-ce4b-387a-5471-39f6fd64f621

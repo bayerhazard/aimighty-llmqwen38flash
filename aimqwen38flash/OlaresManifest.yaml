@@ -11,7 +11,7 @@ metadata:
   description: Qwen3.8-Flash-Next 180B via llama.cpp — 6B active MoE, MTP speculative decoding, N-gram SSD offload
   appid: aimqwen38flash
   title: AIM Qwen3.8 Flash
-  version: '26.9.8'
+  version: '26.9.10'
   categories:
     - AI
     - Vision
@@ -26,7 +26,7 @@ entrances:
     authLevel: internal
 
 spec:
-  versionName: '26.9.8'
+  versionName: '26.9.10'
   fullDescription: |
     AImighty flagship MoE stack for Qwen3.8-Flash-Next, the 180B-parameter (6B active) ultra-sparse hybrid-attention VL model, optimized for long-horizon agentic workflows with 200K+ context on Olares One.
 
@@ -56,6 +56,8 @@ spec:
     - 1 GPU (RTX 5090, 22 GiB slice) + 40 GiB RAM limit
     - 115 GB model files on worker-local NVMe (pre-staged or auto-downloaded)
   upgradeDescription: |
+    26.9.10: A/B-tuned performance defaults — THREADS 8→12, DRAFT_THREADS 4→6, UBATCH 1024→2048 (decode 20.7→24 t/s +16%, prefill 108→238 t/s +119%); rejected: quantized KV (iq4_nl slower, turbo4 unsupported in this build), DRAFT_MAX 4 (acceptance 0.60→0.45), THREADS 16 (decode -15%). Built for Olares 1.12.6.
+    26.9.9: Performance tuning pass — add KV cache-type switch (CACHE_TYPE_K/V env, turbo4) for 200K-context RAM + bandwidth; A/B-tuned threads/ubatch/MTP n-max. Built for Olares 1.12.6.
     26.9.8: Fix MTP draft path — removed stray quote-escaping in SPEC_ARG that passed a quoted path to llama-server (ENOENT crash on draft load); MTP draft-mtp now loads correctly. Built for Olares 1.12.6.
     26.9.7: Engine upgrade to unslothai/llama.cpp b10798-mix-659e406 @ d6b1d27 (CUDA 13.3 prebuild) — fixes the qwen4exp MTP position-tracking bug (ctx_other); MTP speculative decoding re-enabled (draft-mtp, n-max 3, Q8_0 shared draft head on CPU, ~88% acceptance). Built for Olares 1.12.6.
     26.9.6: Disable MTP speculative decoding (position-tracking bug in qwen4exp ctx_other); optimize CPU threads 16→8 (+33% decode: 15→20 t/s); ubatch 512→1024; GPU slice 16→22 GiB. Built for Olares 1.12.6.
