@@ -1,0 +1,15 @@
+# llama-server (unslothai/llama.cpp b10798-mix-659e406 @ d6b1d27, CUDA 13.3 prebuild)
+# Includes: MTP for Qwen3.8-Flash-Next (draft-mtp, PR unslothai/llama.cpp#144)
+# RTX 5090 (sm_120 Blackwell)
+FROM nvidia/cuda:13.3.1-runtime-ubuntu24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 ca-certificates curl bash \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY bin/ /app/
+ENV LD_LIBRARY_PATH=/app
+# libcuda.so.1 is provided by the node driver at runtime (nvidia-container-runtime)
+RUN LD_LIBRARY_PATH=/app ldd /app/llama-server | grep -v "libcuda" | awk '/not found/{print; bad=1} END{exit bad}'
+ENTRYPOINT ["/app/llama-server"]

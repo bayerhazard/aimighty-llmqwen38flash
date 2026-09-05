@@ -4,8 +4,8 @@ workloads:
 
 image:
   repository: ghcr.io/bayerhazard/llama-cpp-qwen4
-  tag: 2c96729
-  full: ghcr.io/bayerhazard/llama-cpp-qwen4:2c96729
+  tag: d6b1d27
+  full: ghcr.io/bayerhazard/llama-cpp-qwen4:d6b1d27
   pullPolicy: IfNotPresent
 
 nameOverride: ""
@@ -27,15 +27,17 @@ resources:
 
 env:
   CTX_SIZE: "200000"
-  THREADS: "16"
+  THREADS: "8"
   PARALLEL: "1"
+  MODEL_ALIAS: "qwen3.8-flash"
+  NGPU_LAYERS: ""
+  N_CPU_MOE: ""
   SPEC_TYPE: "draft-mtp"
   DRAFT_MAX: "3"
-  MODEL_ALIAS: "qwen3.8-flash"
-  NGPU_LAYERS: "all"
-  N_CPU_MOE: ""
+  DRAFT_NGL: "0"
+  DRAFT_THREADS: "4"
   BATCH_SIZE: "2048"
-  UBATCH_SIZE: "512"
+  UBATCH_SIZE: "1024"
   MODELS_DIR: "/models"
   MODELS_HOST_PATH: "/var/lib/olares-local-models"
 

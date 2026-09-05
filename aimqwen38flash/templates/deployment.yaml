@@ -81,22 +81,26 @@ spec:
             fetch "UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00002-of-00004.gguf"
             fetch "UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00003-of-00004.gguf"
             fetch "UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00004-of-00004.gguf"
-            fetch "MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf"
             fetch "mmproj-F16.gguf"
             N_CPU_MOE_ARG=""
             if [ -n "${N_CPU_MOE:-}" ]; then N_CPU_MOE_ARG="--n-cpu-moe ${N_CPU_MOE}"; fi
+            NGPU_ARG=""
+            if [ -n "${NGPU_LAYERS:-}" ]; then NGPU_ARG="-ngl ${NGPU_LAYERS}"; fi
+            SPEC_ARG=""
+            if [ -n "${SPEC_TYPE:-}" ]; then
+              fetch "MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf"
+              SPEC_ARG="--model-draft $MODELS/MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf --spec-type ${SPEC_TYPE} --spec-draft-n-max ${DRAFT_MAX:-3} --spec-draft-ngl ${DRAFT_NGL:-0} --spec-draft-threads ${DRAFT_THREADS:-4}"
+            fi
             export LD_LIBRARY_PATH=/app:${LD_LIBRARY_PATH:-}
             exec /app/llama-server \
               --model "$MODELS/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00001-of-00004.gguf" \
-              --model-draft "$MODELS/MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf" \
-              --spec-type "${SPEC_TYPE:-draft-mtp}" \
-              --spec-draft-n-max "${DRAFT_MAX:-3}" \
-              --mmproj "$MODELS/mmproj-F16.gguf" --mmproj-gpu-swap \
+              --mmproj "$MODELS/mmproj-F16.gguf" \
               --alias "${MODEL_ALIAS:-qwen3.8-flash}" \
               --host 0.0.0.0 --port 8000 \
-              -ngl "${NGPU_LAYERS:-all}" \
+              $NGPU_ARG \
               $N_CPU_MOE_ARG \
-              --ctx-size "${CTX_SIZE:-200000}" --threads "${THREADS:-16}" \
+              $SPEC_ARG \
+              --ctx-size "${CTX_SIZE:-200000}" --threads "${THREADS:-8}" \
               --parallel "${PARALLEL:-1}" \
               --flash-attn on --jinja \
               --reasoning-preserve \
@@ -104,12 +108,12 @@ spec:
               --reasoning-budget 8192 \
               --reasoning-budget-message 'Enough reasoning - provide your final answer now.' \
               --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0 \
-              --batch-size "${BATCH_SIZE:-2048}" --ubatch-size "${UBATCH_SIZE:-512}"
+              --batch-size "${BATCH_SIZE:-2048}" --ubatch-size "${UBATCH_SIZE:-1024}"
         env:
         - name: MODELS_DIR
           value: /models
         - name: CUDA_DEVICE_MEMORY_LIMIT_0
-          value: 16000m
+          value: 22000m
         envFrom:
         - configMapRef:
             name: aimqwen38flash-env

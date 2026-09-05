@@ -8,10 +8,10 @@ workloadReplicas:
 metadata:
   name: aimqwen38flash
   icon: https://raw.githubusercontent.com/bayerhazard/aimighty-llmqwen38flash/main/icon.png
-  description: Qwen3.8-Flash-Next 180B via llama.cpp — 6B active MoE, N-gram SSD offload, MTP
+  description: Qwen3.8-Flash-Next 180B via llama.cpp — 6B active MoE, MTP speculative decoding, N-gram SSD offload
   appid: aimqwen38flash
   title: AIM Qwen3.8 Flash
-  version: '26.9.1'
+  version: '26.9.8'
   categories:
     - AI
     - Vision
@@ -26,23 +26,25 @@ entrances:
     authLevel: internal
 
 spec:
-  versionName: '26.9.1'
+  versionName: '26.9.8'
   fullDescription: |
     AImighty flagship MoE stack for Qwen3.8-Flash-Next, the 180B-parameter (6B active) ultra-sparse hybrid-attention VL model, optimized for long-horizon agentic workflows with 200K+ context on Olares One.
 
     Model:
     - unsloth/Qwen3.8-Flash-Next-GGUF (UD-Q4_K_XL, 111.3 GB, 4-part split)
     - 125B LM + 51B N-gram embedding table (SSD/RAM offload via mmap + async prefetch) + 4B MTP branch
-    - Vision: mmproj-F16.gguf on GPU (gpu-swap)
+    - Vision: mmproj-F16.gguf on GPU
     - 200K token context, hybrid attention (Gated DeltaNet + Qwen Sparse Attention)
 
     Inference Engine:
-    - llama.cpp qwen4exp/mtp @ 2c967293 (CUDA 13.1, sm_120 Blackwell, AVX-512/AMX custom build)
-    - MTP speculative decoding (draft-mtp, --spec-draft-n-max 3, shared-tensor MTP module Q8_0)
-    - Parallel slots: 1, Batch: 2048/512, Reasoning: on (medium effort, 8192-token budget)
+    - llama.cpp b10798-mix-659e406 @ d6b1d27 (unslothai prebuild, CUDA 13.3, sm_120 Blackwell)
+    - MTP speculative decoding (draft-mtp, n-max 3, Q8_0 shared draft head on CPU) — ~88% draft acceptance
+    - Optimized MoE threading: 8 CPU threads + 4 draft threads
+    - Parallel slots: 1, Batch: 2048/1024, Reasoning: on (medium effort, 8192-token budget)
 
     Key Features:
     - 6B active parameters per token — RAM inference close to GPU speed
+    - MTP multi-token prediction: drafts 3 tokens per step, ~88% acceptance (measured)
     - N-gram lookup table offloaded to SSD/RAM (mmap, async prefetch)
     - Preserve thinking across multi-turn conversations
     - Hard reasoning budget (8192 tokens) prevents empty outputs
@@ -51,10 +53,17 @@ spec:
     - OpenAI-compatible: /v1/chat/completions, /v1/models, /health
 
     Resource Usage:
-    - 1 GPU (RTX 5090, 16 GiB slice) + 40 GiB RAM limit
+    - 1 GPU (RTX 5090, 22 GiB slice) + 40 GiB RAM limit
     - 115 GB model files on worker-local NVMe (pre-staged or auto-downloaded)
   upgradeDescription: |
-    26.9.1: Initial dev deploy — Qwen3.8-Flash-Next (180B total / 6B active) UD-Q4_K_XL + MTP (draft-mtp, n-max 3) + Vision (mmproj-F16, gpu-swap); engine llama.cpp qwen4exp/mtp @ 2c967293 (CUDA 13.1, sm_120); models on worker-local NVMe (JuiceFS bypass); Built for Olares 1.12.6.
+    26.9.8: Fix MTP draft path — removed stray quote-escaping in SPEC_ARG that passed a quoted path to llama-server (ENOENT crash on draft load); MTP draft-mtp now loads correctly. Built for Olares 1.12.6.
+    26.9.7: Engine upgrade to unslothai/llama.cpp b10798-mix-659e406 @ d6b1d27 (CUDA 13.3 prebuild) — fixes the qwen4exp MTP position-tracking bug (ctx_other); MTP speculative decoding re-enabled (draft-mtp, n-max 3, Q8_0 shared draft head on CPU, ~88% acceptance). Built for Olares 1.12.6.
+    26.9.6: Disable MTP speculative decoding (position-tracking bug in qwen4exp ctx_other); optimize CPU threads 16→8 (+33% decode: 15→20 t/s); ubatch 512→1024; GPU slice 16→22 GiB. Built for Olares 1.12.6.
+    26.9.5: Wire DRAFT_NGL into the env ConfigMap (was missing) so --spec-draft-ngl 0 actually reaches llama-server; MTP draft stays on CPU.
+    26.9.4: Fix MTP draft GPU OOM — MTP draft model now on CPU (--spec-draft-ngl 0) so it no longer competes with the main model for the 16 GB GPU slice.
+    26.9.3: Fix GPU OOM — removed -ngl pin so auto-fit offloads only ~16 GB to the GPU; MoE experts + N-gram table stay in RAM/SSD.
+    26.9.2: Fix — removed unsupported --mmproj-gpu-swap flag (rejected by llama.cpp qwen4exp/mtp build); vision mmproj-F16 loads normally.
+    26.9.1: Initial dev deploy — Qwen3.8-Flash-Next (180B total / 6B active) UD-Q4_K_XL + MTP (draft-mtp, n-max 3) + Vision (mmproj-F16); engine llama.cpp qwen4exp/mtp @ 2c967293 (CUDA 13.1, sm_120); models on worker-local NVMe (JuiceFS bypass); Built for Olares 1.12.6.
   developer: Aimighty
   website: https://github.com/bayerhazard/aimighty-llmqwen38flash
   sourceCode: https://github.com/bayerhazard/aimighty-llmqwen38flash
