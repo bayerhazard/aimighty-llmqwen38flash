@@ -11,7 +11,7 @@ metadata:
   description: Qwen3.8-Flash-Next 180B via llama.cpp — 6B active MoE, MTP speculative decoding, N-gram SSD offload
   appid: aimqwen38flash
   title: AIM Qwen3.8 Flash
-  version: '26.9.10'
+  version: '26.9.11'
   categories:
     - AI
     - Vision
@@ -26,7 +26,7 @@ entrances:
     authLevel: internal
 
 spec:
-  versionName: '26.9.10'
+  versionName: '26.9.11'
   fullDescription: |
     AImighty flagship MoE stack for Qwen3.8-Flash-Next, the 180B-parameter (6B active) ultra-sparse hybrid-attention VL model, optimized for long-horizon agentic workflows with 200K+ context on Olares One.
 

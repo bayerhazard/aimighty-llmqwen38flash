@@ -3,9 +3,9 @@ workloads:
     replicaCount: 1
 
 image:
-  repository: ghcr.io/bayerhazard/llama-cpp-qwen4
-  tag: d6b1d27
-  full: ghcr.io/bayerhazard/llama-cpp-qwen4:d6b1d27
+  repository: ghcr.io/bayerhazard/buun-llama-qwen4
+  tag: 28027a3
+  full: ghcr.io/bayerhazard/buun-llama-qwen4:28027a3
   pullPolicy: IfNotPresent
 
 nameOverride: ""
@@ -38,9 +38,16 @@ env:
   DRAFT_THREADS: "6"
   DRAFT_FILE: "MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf"
   BATCH_SIZE: "2048"
-  UBATCH_SIZE: "2048"
-  CACHE_TYPE_K: ""
-  CACHE_TYPE_V: ""
+  UBATCH_SIZE: "512"
+  CACHE_TYPE_K: "vbr"
+  CACHE_TYPE_V: "vbr"
+  VBR_ENTRY: "t8"
+  FIT: "on"
+  MOE_CACHE: "auto"
+  SPLIT_MODE: "layer"
+  MODEL_SUBDIR: "UD-IQ4_XS"
+  MODEL_FILE: "Qwen3.8-Flash-Next-UD-IQ4_XS-00001-of-00003.gguf"
+  MODEL_PARTS: "3"
   MODELS_DIR: "/models"
   MODELS_HOST_PATH: "/var/lib/olares-local-models"
 

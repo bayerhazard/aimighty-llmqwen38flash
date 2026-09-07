@@ -77,10 +77,13 @@ spec:
                 curl -fL -C - --retry 10 --retry-delay 10 --retry-all-errors --connect-timeout 30 "$B/$rel?download=true" -o "$MODELS/$rel"
               fi
             }
-            fetch "UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00001-of-00004.gguf"
-            fetch "UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00002-of-00004.gguf"
-            fetch "UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00003-of-00004.gguf"
-            fetch "UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00004-of-00004.gguf"
+            MSD="${MODEL_SUBDIR:-UD-IQ4_XS}"
+            MPRT="${MODEL_PARTS:-3}"
+            MPFX="${MODEL_FILE:-Qwen3.8-Flash-Next-UD-IQ4_XS-00001-of-00003.gguf}"
+            for p in $(seq 1 "$MPRT"); do
+              f="$(printf "%s" "$MPFX" | sed "s/-000[0-9]*-of-${MPRT}/-000$(printf %02d $p)-of-${MPRT}/")"
+              fetch "$MSD/$f"
+            done
             fetch "mmproj-F16.gguf"
             N_CPU_MOE_ARG=""
             if [ -n "${N_CPU_MOE:-}" ]; then N_CPU_MOE_ARG="--n-cpu-moe ${N_CPU_MOE}"; fi
@@ -94,9 +97,14 @@ spec:
             fi
             KV_ARG=""
             if [ -n "${CACHE_TYPE_K:-}" ]; then KV_ARG="--cache-type-k ${CACHE_TYPE_K} --cache-type-v ${CACHE_TYPE_V:-${CACHE_TYPE_K}}"; fi
+            if [ "${CACHE_TYPE_K:-}" = "vbr" ]; then KV_ARG="$KV_ARG --vbr-entry ${VBR_ENTRY:-t8}"; fi
+            BUUN_ARG=""
+            if [ -n "${MOE_CACHE:-}" ]; then BUUN_ARG="--moe-cache ${MOE_CACHE}"; fi
+            if [ -n "${FIT:-}" ]; then BUUN_ARG="$BUUN_ARG --fit ${FIT}"; fi
+            if [ -n "${SPLIT_MODE:-}" ]; then BUUN_ARG="$BUUN_ARG -sm ${SPLIT_MODE}"; fi
             export LD_LIBRARY_PATH=/app:${LD_LIBRARY_PATH:-}
             exec /app/llama-server \
-              --model "$MODELS/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00001-of-00004.gguf" \
+              --model "$MODELS/$MSD/$MPFX" \
               --mmproj "$MODELS/mmproj-F16.gguf" \
               --alias "${MODEL_ALIAS:-qwen3.8-flash}" \
               --host 0.0.0.0 --port 8000 \
@@ -106,6 +114,7 @@ spec:
               $KV_ARG \
               --ctx-size "${CTX_SIZE:-200000}" --threads "${THREADS:-8}" \
               --parallel "${PARALLEL:-1}" \
+              $BUUN_ARG \
               --flash-attn on --jinja \
               --reasoning-preserve \
               --chat-template-kwargs '{"reasoning_effort":"medium"}' \
