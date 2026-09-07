@@ -72,7 +72,7 @@ spec:
   requiredCpu: "12"
   limitedCpu: "20"
   requiredMemory: 40Gi
-  limitedMemory: 58Gi
+  limitedMemory: 72Gi
   requiredDisk: 120Gi
   limitedDisk: 130Gi
   requiredGpu: 1

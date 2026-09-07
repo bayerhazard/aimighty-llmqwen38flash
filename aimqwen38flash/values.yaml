@@ -18,7 +18,7 @@ service:
 resources:
   limits:
     cpu: 20
-    memory: 58Gi
+    memory: 72Gi
     nvidia.com/gpu: 1
   requests:
     cpu: 12
@@ -34,7 +34,7 @@ env:
   N_CPU_MOE: ""
   SPEC_TYPE: "draft-mtp"
   DRAFT_MAX: "3"
-  DRAFT_NGL: "0"
+  DRAFT_NGL: "99"
   DRAFT_THREADS: "6"
   DRAFT_FILE: "MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf"
   BATCH_SIZE: "2048"
